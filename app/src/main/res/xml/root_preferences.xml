@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory>
+        <SwitchPreferenceCompat
+            app:key="notifications"
+            app:title="Enable notifications"
+            app:defaultValue="true"/>
+
+        <ListPreference
+            app:key="sync_frequency"
+            app:title="Sync frequency"
+            app:entries="@array/sync_frequency_entries"
+            app:entryValues="@array/sync_frequency_values"
+            app:defaultValue="360"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Account">
+        <Preference
+            app:key="change_password"
+            app:title="Change password"/>
+
+        <Preference
+            app:key="privacy_policy"
+            app:title="Privacy policy"/>
+    </PreferenceCategory>
+
+</PreferenceScreen>

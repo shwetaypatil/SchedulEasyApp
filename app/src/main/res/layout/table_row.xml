@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="60dp"
+    android:orientation="horizontal"
+    android:background="@drawable/row_background"
+    android:layout_marginBottom="4dp">
+
+    <!-- Time Input -->
+    <EditText
+        android:id="@+id/timeInput"
+        android:layout_width="120dp"
+        android:layout_height="match_parent"
+        android:hint="08:00"
+        android:inputType="number|time"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:textColor="#000000"
+        android:background="@drawable/cell_background"
+        android:maxLines="1"/>
+
+    <!-- Monday -->
+    <EditText
+        android:id="@+id/monInput"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:hint="Subject"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:textColor="#000000"
+        android:clickable="true"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:background="@drawable/cell_background"
+        android:padding="4dp"/>
+
+    <!-- Tuesday -->
+    <EditText
+        android:id="@+id/tueInput"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:hint="Subject"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:clickable="true"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:background="@drawable/cell_background"
+        android:textColor="#000000"
+        android:padding="4dp"/>
+
+    <!-- Wednesday -->
+    <EditText
+        android:id="@+id/wedInput"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:hint="Subject"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:clickable="true"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:background="@drawable/cell_background"
+        android:textColor="#000000"
+        android:padding="4dp"/>
+
+    <!-- Thursday -->
+    <EditText
+        android:id="@+id/thuInput"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:hint="Subject"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:clickable="true"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:background="@drawable/cell_background"
+        android:textColor="#000000"
+        android:padding="4dp"/>
+
+    <!-- Friday -->
+    <EditText
+        android:id="@+id/friInput"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:hint="Subject"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:clickable="true"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:background="@drawable/cell_background"
+        android:textColor="#000000"
+        android:padding="4dp"/>
+
+    <!-- Saturday -->
+    <EditText
+        android:id="@+id/satInput"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:hint="Subject"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:clickable="true"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:background="@drawable/cell_background"
+        android:textColor="#000000"
+        android:padding="4dp"/>
+
+    <!-- Delete Button -->
+    <ImageButton
+        android:id="@+id/deleteRow"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_delete"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Delete row"
+        android:layout_marginStart="8dp"/>
+</LinearLayout>

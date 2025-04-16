@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <!-- Enhanced Toolbar with title -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#4FB156"
+        android:elevation="4dp"
+        android:minHeight="82dp"
+        app:title="SchedulEasy"
+        app:titleTextColor="@color/black"
+        app:titleMarginStart="25dp"
+        app:titleMarginEnd="8dp"
+        app:titleMarginTop="8dp"
+        app:titleMarginBottom="8dp"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+    </androidx.appcompat.widget.Toolbar>
+
+    <!-- RecyclerView with empty state support -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/toolbar">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/timetableList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="100dp" />
+
+        <TextView
+            android:id="@+id/emptyState"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="No timetables found\nTap + to create one"
+            android:textColor="#757575"
+            android:textSize="18sp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- Add this TextView below your RecyclerView -->
+    <TextView
+        android:id="@+id/tvUserMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Student Mode"
+        android:visibility="gone"
+        android:layout_gravity="center_horizontal"
+        android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
+
+    <!-- Customized Floating Action Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddTimetable"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="40dp"
+        android:layout_marginBottom="40dp"
+        android:contentDescription="Add new timetable"
+        android:scaleType="centerInside"
+        android:src="@drawable/addbutnn"
+        app:backgroundTint="#4FB156"
+        app:elevation="8dp"
+        android:visibility="gone"
+        app:fabCustomSize="100dp"
+        app:maxImageSize="90dp"
+        app:tint="@null" />
+
+</RelativeLayout>
