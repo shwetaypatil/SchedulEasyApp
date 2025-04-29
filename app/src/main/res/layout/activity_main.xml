@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,35 +6,52 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- Enhanced Toolbar with title -->
-    <androidx.appcompat.widget.Toolbar
+    <!-- Toolbar -->
+    <!-- Content container -->
+    <!--<androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#4FB156"
         android:elevation="4dp"
-        android:minHeight="82dp"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
         app:title="SchedulEasy"
-        app:titleTextColor="@color/black"
         app:titleMarginStart="25dp"
-        app:titleMarginEnd="8dp"
-        app:titleMarginTop="8dp"
-        app:titleMarginBottom="8dp"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
-    </androidx.appcompat.widget.Toolbar>
+        app:titleTextColor="@color/black"
+        app:overflowIcon="@null"/>-->
 
-    <!-- RecyclerView with empty state support -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#4FB156"
+        android:elevation="4dp"
+        app:title="SchedulEasy"
+        app:titleMarginStart="25dp"
+        app:titleTextColor="@color/black" />  <!-- Now works! -->
+
     <FrameLayout
+        android:id="@+id/contentContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/toolbar">
+        android:layout_below="@id/toolbar"
+        android:layout_above="@+id/fabAddTimetable">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/timetableList"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="100dp" />
+            android:paddingBottom="120dp" />
+
+        <TextView
+            android:id="@+id/tvUserMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Student Mode"
+            android:visibility="gone"
+            android:layout_gravity="center_horizontal"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
 
         <TextView
             android:id="@+id/emptyState"
@@ -48,33 +64,21 @@
             android:visibility="gone" />
     </FrameLayout>
 
-    <!-- Add this TextView below your RecyclerView -->
-    <TextView
-        android:id="@+id/tvUserMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Student Mode"
-        android:visibility="gone"
-        android:layout_gravity="center_horizontal"
-        android:textAppearance="@style/TextAppearance.AppCompat.Large"/>
-
-    <!-- Customized Floating Action Button -->
+    <!-- Floating Action Button - aligned to bottom end of parent -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddTimetable"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="40dp"
-        android:layout_marginBottom="40dp"
-        android:contentDescription="Add new timetable"
-        android:scaleType="centerInside"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="32dp"
         android:src="@drawable/addbutnn"
+        android:scaleType="centerInside"
+        app:fabCustomSize="100dp"
+        app:maxImageSize="70dp"
+        android:visibility="visible"
         app:backgroundTint="#4FB156"
         app:elevation="8dp"
-        android:visibility="gone"
-        app:fabCustomSize="100dp"
-        app:maxImageSize="90dp"
         app:tint="@null" />
-
 </RelativeLayout>

@@ -16,6 +16,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText userName, passWord;
     private Button loginButton, studLogin;
+    private AuthManager authManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,10 +34,16 @@ public class LoginActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.loginButton);
         studLogin = findViewById(R.id.studLogin);
 
+        authManager = AuthManager.getInstance(this);
+
+        // Check if coming from logout
+        boolean fromLogout = getIntent().getBooleanExtra("LOGOUT", false);
+
         //auth-login check
-        if (AuthManager.getInstance(this).isFacultyLoggedIn()){
-            startMainActivity();
+        if (authManager.isFacultyLoggedIn() && !fromLogout) {
+            startMainActivity("FACULTY");
             finish();
+            return;
         }
 
         loginButton.setOnClickListener(v -> handleFacultyLogin());
@@ -47,29 +55,36 @@ public class LoginActivity extends AppCompatActivity {
         String password = passWord.getText().toString().trim();
 
         if (username.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
-        } else if (isValidFaculty(username, password)) {
-            AuthManager.getInstance(this).saveLoginState(username, "FACULTY");
-            startMainActivity();
+            showToast("Please fill all fields");
+            return;
+        }
+
+        if (isValidFaculty(username, password)) {
+            authManager.saveFacultyLogin(username);
+            startMainActivity("FACULTY");
         } else {
-            Toast.makeText(this, "Invalid credentials", Toast.LENGTH_SHORT).show();
+            showToast("Invalid faculty credentials");
         }
     }
 
     private void handleStudentLogin() {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("USER_TYPE", "STUDENT");
-        startActivity(intent);
-        finish();
+        startMainActivity("STUDENT");
     }
 
-    private void startMainActivity() {
-        startActivity(new Intent(this, MainActivity.class));
+    private void startMainActivity(String userType) {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra("USER_TYPE", userType);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
         finish();
     }
 
     // Hardcoded faculty check (Replace with Firebase/Database later)
     private boolean isValidFaculty(String username, String password) {
         return username.equals("DYPSN") && password.equals("DYP@123");
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

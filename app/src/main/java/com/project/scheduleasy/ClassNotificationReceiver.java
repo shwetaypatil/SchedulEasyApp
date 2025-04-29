@@ -61,8 +61,11 @@ public class ClassNotificationReceiver extends BroadcastReceiver {
                 .setAutoCancel(true)
                 .build();
 
-        NotificationManagerCompat.from(context)
-                .notify((className + classTime).hashCode(), notification);
+        /*NotificationManagerCompat.from(context)
+                .notify((className + classTime).hashCode(), notification);*/
+
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify((className + classTime).hashCode(), notification);
     }
 
 

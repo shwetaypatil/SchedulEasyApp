@@ -9,6 +9,8 @@ import android.os.Build;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class ClassNotificationScheduler {
@@ -23,13 +25,18 @@ public class ClassNotificationScheduler {
 
     public void scheduleAllClassNotifications() {
         AppDatabase db = AppDatabase.getInstance(context);
-        db.classDao().getAllClassesWithNotifications().forEach(this::scheduleSingleClass);
+        List<ClassSchedule> classList = db.classDao().getAllClassesWithNotificationsDirect();
+        for (ClassSchedule schedule : classList) {
+            scheduleSingleClass(schedule);
+        }
+
     }
 
     private void scheduleSingleClass(ClassSchedule classSchedule) {
         Intent intent = new Intent(context, ClassNotificationReceiver.class)
                 .putExtra("classId", classSchedule.id)
-                .putExtra("className", classSchedule.className);
+                .putExtra("className", classSchedule.className)
+                .putExtra("classTime", classSchedule.startTime);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -58,22 +65,30 @@ public class ClassNotificationScheduler {
     }
 
     private long calculateNextTrigger(int dayOfWeek, String time) {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault()); // 12-hour format
+
         Calendar now = Calendar.getInstance();
-        Calendar trigger = Calendar.getInstance();
+        Calendar trigger = Calendar.getInstance(); // Declare outside try block
 
         try {
-            // Parse hour and minute
-            trigger.setTime(sdf.parse(time));
-            trigger.set(Calendar.SECOND, 0);
-            trigger.set(Calendar.MILLISECOND, 0);
+            Date parsedTime = sdf.parse(time);
+
+            if (parsedTime != null) {
+                Calendar timeCal = Calendar.getInstance();
+                timeCal.setTime(parsedTime);
+
+                // Now set the desired class day and time
+                trigger.set(Calendar.DAY_OF_WEEK, dayOfWeek);
+                trigger.set(Calendar.HOUR, timeCal.get(Calendar.HOUR));
+                trigger.set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE));
+                trigger.set(Calendar.SECOND, 0);
+                trigger.set(Calendar.MILLISECOND, 0);
+                trigger.set(Calendar.AM_PM, timeCal.get(Calendar.AM_PM));
+            }
         } catch (ParseException e) {
             e.printStackTrace();
             return System.currentTimeMillis() + 5 * 60 * 1000; // fallback: trigger after 5 minutes
         }
-
-        // Set day of week
-        trigger.set(Calendar.DAY_OF_WEEK, dayOfWeek);
 
         // If the time has already passed for today, set it for next week
         if (trigger.before(now)) {
@@ -82,6 +97,7 @@ public class ClassNotificationScheduler {
 
         return trigger.getTimeInMillis();
     }
+
 
     public void cancelAll() {
         // Optionally loop through all scheduled classes and cancel them using the same PendingIntent logic

@@ -1,6 +1,7 @@
 package com.project.scheduleasy;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.animation.Animation;
@@ -29,32 +30,22 @@ public class SplashscreenActivity extends AppCompatActivity {
         appIcon.startAnimation(fadeIn);
 
         new Handler().postDelayed(() -> {
-            Intent intent = new Intent(SplashscreenActivity.this, LoginActivity.class);
+
+            SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
+            String userId = prefs.getString("currentUserId", null);
+
+            Intent intent;
+
+            if (userId != null){
+                intent = new Intent(SplashscreenActivity.this, MainActivity.class);
+            } else {
+                intent = new Intent(SplashscreenActivity.this, LoginActivity.class);
+            }
+
             startActivity(intent);
             finish();
         }, 5000);
 
-        // 1. Initialize notification scheduler
-        ClassNotificationScheduler scheduler = new ClassNotificationScheduler(this);
-
-        // 2. Check and request permissions (Android 13+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-                    PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
-            }
-        }
-
-        // 3. Schedule notifications in background thread
-        Executors.newSingleThreadExecutor().execute(() -> {
-            scheduler.scheduleAllClassNotifications();
-
-            // Proceed to main activity
-            runOnUiThread(() -> {
-                startActivity(new Intent(this, MainActivity.class));
-                finish();
-            });
-        });
     }
 
     @Override

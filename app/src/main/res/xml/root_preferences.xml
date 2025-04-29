@@ -1,28 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory>
-        <SwitchPreferenceCompat
-            app:key="notifications"
-            app:title="Enable notifications"
-            app:defaultValue="true"/>
+    <!-- Theme Preference -->
+    <ListPreference
+        android:key="theme"
+        android:title="Theme"
+        android:summary="Choose light or dark mode"
+        android:entries="@array/theme_options"
+        android:entryValues="@array/theme_values"
+        android:defaultValue="system" />
 
-        <ListPreference
-            app:key="sync_frequency"
-            app:title="Sync frequency"
-            app:entries="@array/sync_frequency_entries"
-            app:entryValues="@array/sync_frequency_values"
-            app:defaultValue="360"/>
-    </PreferenceCategory>
-
-    <PreferenceCategory app:title="Account">
-        <Preference
-            app:key="change_password"
-            app:title="Change password"/>
-
-        <Preference
-            app:key="privacy_policy"
-            app:title="Privacy policy"/>
-    </PreferenceCategory>
-
+    <!-- Notification Preference -->
+    <SwitchPreferenceCompat
+        android:key="notifications"
+        android:title="Enable Notifications"
+        android:summary="Turn notifications on or off"
+        android:defaultValue="true" />
 </PreferenceScreen>

@@ -12,7 +12,8 @@
         android:layout_height="wrap_content"
         android:hint="Enter value"
         android:inputType="text"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:textColor="@color/black"/>
 
     <LinearLayout
         android:layout_width="match_parent"

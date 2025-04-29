@@ -16,11 +16,11 @@ public class BootReceiver extends BroadcastReceiver {
         }
 
         String action = intent.getAction();
-        Log.d(TAG, "Received broadcast: " + action);
+        Log.d(TAG, "Received broadcast: " + action);  // Removed `msg:`
 
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) ||
                 Intent.ACTION_TIMEZONE_CHANGED.equals(action) ||
-                Intent.ACTION_TIME_SET.equals(action)) {
+                Intent.ACTION_TIME_CHANGED.equals(action)) {  // Added missing parenthesis
 
             // It's best to run tasks like scheduling in a background thread
             new Thread(() -> {

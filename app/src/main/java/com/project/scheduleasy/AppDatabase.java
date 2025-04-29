@@ -6,8 +6,8 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
 
-@Database(entities = {TimetableMeta.class, StudentClass.class},
-        version = 2) // Incremented version
+@Database(entities = {TimetableMeta.class, StudentClass.class, ClassSchedule.class},
+        version = 3) // Incremented version
 public abstract class AppDatabase extends RoomDatabase {
 
     private static AppDatabase instance;

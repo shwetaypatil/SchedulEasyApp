@@ -34,10 +34,11 @@ dependencies {
     implementation libs.material
     implementation libs.activity
     implementation libs.constraintlayout
-    implementation libs.material.v160
+    implementation libs.material.v1110
     implementation libs.recyclerview
     implementation libs.gson
     implementation libs.zoomlayout
+    implementation libs.core  // or latest version
     implementation libs.itext7.core // PDF generation
     implementation libs.core.ktx
     implementation libs.preference// For file operations

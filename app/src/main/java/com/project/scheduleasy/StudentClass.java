@@ -2,15 +2,13 @@ package com.project.scheduleasy;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
-import androidx.room.PrimaryKey;
 
-@Entity(tableName = "student_classes")
+@Entity(tableName = "student_classes", primaryKeys = {"studentId", "classId"})
 public class StudentClass {
-    @PrimaryKey
+
     @NonNull
     public String studentId;
 
-    @PrimaryKey
     @NonNull
     public String classId;
 

@@ -17,4 +17,5 @@ public interface TimetableDao {
 
     @Delete
     void delete(TimetableMeta timetable);
+
 }

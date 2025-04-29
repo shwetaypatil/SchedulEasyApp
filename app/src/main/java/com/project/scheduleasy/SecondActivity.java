@@ -1,10 +1,12 @@
 package com.project.scheduleasy;
 
-import android.app.ProgressDialog;
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,7 +18,6 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ScrollView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -26,37 +27,27 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import androidx.core.content.FileProvider;
-import android.net.Uri;
-
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.pdf.PdfDocument;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Typeface;
-import android.os.Environment;
-import android.util.Log;
 
 import java.io.File;
-import java.io.FileOutputStream;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SecondActivity extends AppCompatActivity {
 
     private LinearLayout contentLayout;
     private MaterialButton addRowBtn, saveBtn;
     private HorizontalScrollView scrollView;
-    private SharedPreferences sharedPreferences;
-    private static final String PREFS_NAME = "TimetablePrefs";
-    private static final String TIMETABLE_DATA = "timetable_data";
     private EditText currentEditingCell;
+    private EditText titleText;
     private Button btnSharePdf;
+    private String timetableId;
+    private AppDatabase appDatabase;
+    private TimetableDao timetableDao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,16 +55,25 @@ public class SecondActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_second);
 
+        // In SecondActivity's onCreate():
+        timetableId = getIntent().getStringExtra("timetable_id");
+        if (timetableId == null) {
+            // Generate new ID if creating new timetable
+            timetableId = UUID.randomUUID().toString();
+        }
+        appDatabase = AppDatabase.getInstance(this);
+        timetableDao = appDatabase.timetableDao();
+
+        titleText = findViewById(R.id.titleText);
         contentLayout = findViewById(R.id.contentLayout);
         scrollView = findViewById(R.id.scrollView);
         addRowBtn = findViewById(R.id.addRow);
         saveBtn = findViewById(R.id.saveButton);
-        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         btnSharePdf = findViewById(R.id.btnSharePdf);
 
         addRowBtn.setOnClickListener(v -> addNewRow());
         saveBtn.setOnClickListener(v -> saveTimetable());
-        btnSharePdf.setOnClickListener(v -> shareTimetableAsPdf());
+        btnSharePdf.setOnClickListener(v -> shareTable());
 
         loadSavedData();
 
@@ -91,7 +91,16 @@ public class SecondActivity extends AppCompatActivity {
         setupEditableCells(rowView);
 
         ImageButton deleteBtn = rowView.findViewById(R.id.deleteRow);
-        deleteBtn.setOnClickListener(v -> contentLayout.removeView(rowView));
+        deleteBtn.setOnClickListener(v -> {
+            // Remove from database first
+            String time = timeInput.getText().toString();
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
+                appDatabase.classDao().deleteByTimeAndTimetableId(time, timetableId);
+            });
+            // Then remove from UI
+            contentLayout.removeView(rowView);
+        });
 
         contentLayout.addView(rowView);
         scrollView.post(() -> scrollView.fullScroll(ScrollView.FOCUS_DOWN));
@@ -164,31 +173,42 @@ public class SecondActivity extends AppCompatActivity {
     }
 
     private void saveTimetable() {
-        try {
-            List<TimeTableEntry> entries = new ArrayList<>();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
 
+        executor.execute(() -> {
+            // First delete all existing schedules for this timetable
+            String time = null;
+            appDatabase.classDao().deleteByTimeAndTimetableId(time, timetableId);
+
+            // Save new schedules
             for (int i = 0; i < contentLayout.getChildCount(); i++) {
                 View rowView = contentLayout.getChildAt(i);
-                entries.add(new TimeTableEntry(
-                        getTextFromView(rowView, R.id.timeInput),
-                        getTextFromView(rowView, R.id.monInput),
-                        getTextFromView(rowView, R.id.tueInput),
-                        getTextFromView(rowView, R.id.wedInput),
-                        getTextFromView(rowView, R.id.thuInput),
-                        getTextFromView(rowView, R.id.friInput),
-                        getTextFromView(rowView, R.id.satInput)
-                ));
+                time = getTextFromView(rowView, R.id.timeInput);
+
+                // Save for each day
+                saveDaySchedule(rowView, time, R.id.monInput, 1); // Monday
+                saveDaySchedule(rowView, time, R.id.tueInput, 2); // Tuesday
+                saveDaySchedule(rowView, time, R.id.wedInput, 3);
+                saveDaySchedule(rowView, time, R.id.thuInput, 4);
+                saveDaySchedule(rowView, time, R.id.friInput, 5);
+                saveDaySchedule(rowView, time, R.id.satInput, 6);
             }
+        });
+        Toast.makeText(this, "Timetable saved", Toast.LENGTH_SHORT).show();
+    }
 
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            Gson gson = new Gson();
-            String json = gson.toJson(entries);
-            editor.putString(TIMETABLE_DATA, json);
-            editor.apply();
-
-            Toast.makeText(this, "Timetable saved!", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(this, "Error saving: " + e.getMessage(), Toast.LENGTH_LONG).show();
+    private void saveDaySchedule(View rowView, String time, int dayViewId, int dayOfWeek) {
+        String className = getTextFromView(rowView, dayViewId);
+        if (!className.isEmpty()) {
+            ClassSchedule schedule = new ClassSchedule(
+                    UUID.randomUUID().toString(), // Generate unique ID
+                    timetableId,
+                    className,
+                    dayOfWeek,
+                    time,
+                    true
+            );
+            appDatabase.classDao().insertAll(schedule);
         }
     }
 
@@ -197,240 +217,147 @@ public class SecondActivity extends AppCompatActivity {
     }
 
     private void loadSavedData() {
-        String json = sharedPreferences.getString(TIMETABLE_DATA, null);
-        if (json != null) {
-            Gson gson = new Gson();
-            Type type = new TypeToken<List<TimeTableEntry>>() {}.getType();
-            List<TimeTableEntry> entries = gson.fromJson(json, type);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler handler = new Handler(Looper.getMainLooper());
 
-            if (entries != null) {
+        executor.execute(() -> {
+            List<ClassSchedule> schedules = appDatabase.classDao().getClassScheduleForTimetable(timetableId);
+
+            handler.post(() -> {
                 contentLayout.removeAllViews();
 
-                for (TimeTableEntry entry : entries) {
-                    View rowView = LayoutInflater.from(this).inflate(R.layout.table_row, contentLayout, false);
+                if (schedules == null || schedules.isEmpty()) {
+                    addNewRow(); // Start with one empty row
+                    return;
+                }
 
-                    ((EditText) rowView.findViewById(R.id.timeInput)).setText(entry.time);
-                    ((EditText) rowView.findViewById(R.id.monInput)).setText(entry.monday);
-                    ((EditText) rowView.findViewById(R.id.tueInput)).setText(entry.tuesday);
-                    ((EditText) rowView.findViewById(R.id.wedInput)).setText(entry.wednesday);
-                    ((EditText) rowView.findViewById(R.id.thuInput)).setText(entry.thursday);
-                    ((EditText) rowView.findViewById(R.id.friInput)).setText(entry.friday);
-                    ((EditText) rowView.findViewById(R.id.satInput)).setText(entry.saturday);
+                // Group by time
+                Map<String, List<ClassSchedule>> timeMap = new TreeMap<>();
+                for (ClassSchedule schedule : schedules) {
+                    if (!timeMap.containsKey(schedule.startTime)) {
+                        timeMap.put(schedule.startTime, new ArrayList<>());
+                    }
+                    timeMap.get(schedule.startTime).add(schedule);
+                }
+
+                // Create rows
+                for (Map.Entry<String, List<ClassSchedule>> entry : timeMap.entrySet()) {
+                    View rowView = LayoutInflater.from(this)
+                            .inflate(R.layout.table_row, contentLayout, false);
+
+                    // Set time
+                    EditText timeInput = rowView.findViewById(R.id.timeInput);
+                    timeInput.setText(entry.getKey());
+
+                    // Set day values
+                    for (ClassSchedule schedule : entry.getValue()) {
+                        switch (schedule.dayOfWeek) {
+                            case 1: setTextSafe(rowView, R.id.monInput, schedule.className); break;
+                            case 2: setTextSafe(rowView, R.id.tueInput, schedule.className); break;
+                            case 3: setTextSafe(rowView, R.id.wedInput, schedule.className); break;
+                            case 4: setTextSafe(rowView, R.id.thuInput, schedule.className); break;
+                            case 5: setTextSafe(rowView, R.id.friInput, schedule.className); break;
+                            case 6: setTextSafe(rowView, R.id.satInput, schedule.className); break;
+                        }
+                    }
 
                     setupEditableCells(rowView);
+
+                    // Add delete functionality
                     ImageButton deleteBtn = rowView.findViewById(R.id.deleteRow);
-                    deleteBtn.setOnClickListener(v -> contentLayout.removeView(rowView));
+                    deleteBtn.setOnClickListener(v -> {
+                        // Delete from database
+                        executor.execute(() -> {
+                            appDatabase.classDao().deleteByTimeAndTimetableId(
+                                    entry.getKey(),
+                                    timetableId
+                            );
+                        });
+                        // Remove from UI
+                        contentLayout.removeView(rowView);
+                    });
 
                     contentLayout.addView(rowView);
                 }
-            }
+            });
+        });
+    }
+
+    // Helper method to clear day fields
+    private void clearDayFields(View rowView) {
+        int[] dayFields = {R.id.monInput, R.id.tueInput, R.id.wedInput,
+                R.id.thuInput, R.id.friInput, R.id.satInput};
+        for (int fieldId : dayFields) {
+            ((EditText)rowView.findViewById(fieldId)).setText("");
         }
     }
 
+    // Helper method to safely set text in EditText
+    private void setTextSafe(View parentView, int viewId, String text) {
+        EditText editText = parentView.findViewById(viewId);
+        if (editText != null && text != null) {
+            editText.setText(text);
+        }
+    }
 
-    private void shareTimetableAsPdf() {
-        final String timetableName = ((EditText) findViewById(R.id.titleText)).getText().toString();
-        ProgressDialog progress = new ProgressDialog(this);
-        progress.setMessage("Generating PDF...");
-        progress.setCancelable(false);
-        progress.show();
+    private void shareTable() {
+        if (scrollView == null) {
+            Toast.makeText(this, "Timetable not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        new Thread(() -> {
-            PdfDocument document = new PdfDocument();
-            try {
-                String finalName = timetableName.isEmpty() ? "MyTimetable" : timetableName;
+        // Check storage permission for Android < 11
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                return;
+            }
+        }
 
-                // 1. Set up PDF page (A4 size at 72dpi)
-                int pageWidth = 595;   // 8.27 inches * 72 dpi
-                int pageHeight = 842;  // 11.69 inches * 72 dpi
-                int margin = 36;       // 0.5 inch margins
+        // Wait for ScrollView to render fully
+        scrollView.post(() -> {
+            // Check storage permission for Android < 11 (API 30+ uses scoped storage)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
+                    checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                return;
+            }
 
-                // 2. Create page
-                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
-                        pageWidth, pageHeight, 1).create();
-                PdfDocument.Page page = document.startPage(pageInfo);
-                Canvas canvas = page.getCanvas();
+            new Thread(() -> {
+                try {
+                    File pdfFile = PdfExportUtil.generatePdfFromView(
+                            SecondActivity.this,
+                            scrollView,
+                            "TimeTable_" + System.currentTimeMillis()
+                    );
 
-                // 3. Set up drawing tools
-                Paint paint = new Paint();
-                paint.setColor(Color.BLACK);
-                paint.setTextSize(12);
-                paint.setAntiAlias(true);
-
-                // 4. Draw title
-                paint.setTextSize(16);
-                paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-                float titleX = pageWidth / 2f;
-                float titleY = margin + 30;
-                canvas.drawText(timetableName, titleX, titleY, paint);
-                paint.setTextSize(12);
-
-                // 5. Draw table headers
-                String[] headers = {"TIME", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-                float colWidth = (pageWidth - 2 * margin) / headers.length;
-                float rowHeight = 20;
-                float tableTop = titleY + 30;
-
-                // Header background
-                paint.setColor(Color.rgb(63, 81, 181)); // Material Indigo
-                canvas.drawRect(margin, tableTop, pageWidth - margin, tableTop + rowHeight, paint);
-
-                // Header text
-                paint.setColor(Color.WHITE);
-                paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-                float textY = tableTop + 15;
-                for (int i = 0; i < headers.length; i++) {
-                    float textX = margin + (i * colWidth) + (colWidth / 2) - (paint.measureText(headers[i]) / 2);
-                    canvas.drawText(headers[i], textX, textY, paint);
-                }
-
-                // 6. Draw timetable content
-                paint.setColor(Color.BLACK);
-                paint.setTypeface(Typeface.DEFAULT);
-                float currentY = tableTop + rowHeight + 5;
-
-                for (int rowPos = 0; rowPos < contentLayout.getChildCount(); rowPos++) {
-                    View row = contentLayout.getChildAt(rowPos);
-
-                    // Alternate row colors
-                    if (rowPos % 2 == 0) {
-                        paint.setColor(Color.rgb(224, 224, 224)); // Light gray
-                        canvas.drawRect(margin, currentY - 15, pageWidth - margin, currentY + 5, paint);
-                        paint.setColor(Color.BLACK);
-                    }
-
-                    // Get all cell values
-                    String time = ((EditText)row.findViewById(R.id.timeInput)).getText().toString();
-                    String[] dayValues = {
-                            ((EditText)row.findViewById(R.id.monInput)).getText().toString(),
-                            ((EditText)row.findViewById(R.id.tueInput)).getText().toString(),
-                            ((EditText)row.findViewById(R.id.wedInput)).getText().toString(),
-                            ((EditText)row.findViewById(R.id.thuInput)).getText().toString(),
-                            ((EditText)row.findViewById(R.id.friInput)).getText().toString(),
-                            ((EditText)row.findViewById(R.id.satInput)).getText().toString()
-                    };
-
-                    // Draw cells
-                    for (int col = 0; col < headers.length; col++) {
-                        String cellText = col == 0 ? time : dayValues[col-1];
-                        float textX = margin + (col * colWidth) + 5; // Left padding
-                        canvas.drawText(cellText, textX, currentY, paint);
-                    }
-
-                    currentY += rowHeight;
-
-                    // Page break if needed
-                    if (currentY > pageHeight - margin) {
-                        document.finishPage(page);
-                        page = document.startPage(pageInfo);
-                        canvas = page.getCanvas();
-                        currentY = margin + 30;
-
-                        // Redraw headers on new page
-                        paint.setColor(Color.rgb(63, 81, 181));
-                        canvas.drawRect(margin, currentY, pageWidth - margin, currentY + rowHeight, paint);
-                        paint.setColor(Color.WHITE);
-                        for (int i = 0; i < headers.length; i++) {
-                            float textX = margin + (i * colWidth) + (colWidth / 2) - (paint.measureText(headers[i]) / 2);
-                            canvas.drawText(headers[i], textX, currentY + 15, paint);
-                        }
-                        currentY += rowHeight + 5;
-                        paint.setColor(Color.BLACK);
-                    }
-                }
-
-                document.finishPage(page);
-
-                // Save PDF
-                File pdfFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
-                        timetableName + ".pdf");
-                try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
-                    document.writeTo(fos);
                     runOnUiThread(() -> {
-                        progress.dismiss();
-                        sharePdfFile(pdfFile);
+                        if (pdfFile != null && pdfFile.exists()) {
+                            PdfExportUtil.sharePdfFile(
+                                    SecondActivity.this,
+                                    pdfFile,
+                                    "Share Timetable PDF"
+                            );
+                        } else {
+                            Toast.makeText(
+                                    SecondActivity.this,
+                                    "Failed to generate PDF",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(
+                                SecondActivity.this,
+                                "Error: " + e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
+                        Log.e("PDF_Export", "Thread crashed", e);
                     });
                 }
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    progress.dismiss();
-                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-                Log.e("PDF_ERROR", "Generation failed", e);
-            } finally {
-                document.close();
-            }
-        }).start();
-    }
-
-
-    private void sharePdfFile(File pdfFile) {
-        try {
-            Uri contentUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", pdfFile);
-
-            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.setType("application/pdf");
-            shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
-            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-            startActivity(Intent.createChooser(shareIntent, "Share Timetable"));
-        } catch (Exception e) {
-            Toast.makeText(this, "Error sharing file", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /*private LinearLayout createHeaderRow() {
-        LinearLayout headerRow = new LinearLayout(this);
-        headerRow.setOrientation(LinearLayout.HORIZONTAL);
-        headerRow.setBackgroundColor(Color.LTGRAY);
-        headerRow.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-
-        String[] headers = {"Time", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-
-        for (String title : headers) {
-            TextView textView = new TextView(this);
-            textView.setText(title); // ✅ this must be set before measuring
-            textView.setTextColor(Color.BLACK); // make sure it's not transparent
-            textView.setTextSize(14f);
-            textView.setTypeface(Typeface.DEFAULT_BOLD);
-            textView.setGravity(Gravity.CENTER);
-            textView.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
-
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f // Equal weight for all columns
-            );
-            textView.setLayoutParams(params);
-
-            headerRow.addView(textView);
-        }
-
-        return headerRow;
-    }*/
-
-
-
-    private int dpToPx(int dp) {
-        return (int) (dp * getResources().getDisplayMetrics().density);
-    }
-
-    // Data model class
-    private static class TimeTableEntry {
-        String time, monday, tuesday, wednesday, thursday, friday, saturday;
-
-        public TimeTableEntry(String time, String monday, String tuesday, String wednesday,
-                              String thursday, String friday, String saturday) {
-            this.time = time;
-            this.monday = monday;
-            this.tuesday = tuesday;
-            this.wednesday = wednesday;
-            this.thursday = thursday;
-            this.friday = friday;
-            this.saturday = saturday;
-        }
+            }).start();
+        });
     }
 }
