@@ -54,7 +54,4 @@ SchedulEasy is a timetable management Android app designed for students and facu
 
 
 ![Sharing Timetable](https://i.imgur.com/J3GXNDf.jpeg)
-## Contributing
-
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
